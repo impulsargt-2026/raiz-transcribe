@@ -76,7 +76,11 @@
   }
 
   async function openSegment() {
-    const constraints = {audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: true}};
+    // autoGainControl en false: el AGC de iOS/WebKit persigue el nivel percibido en tiempo real y
+    // "bombea" la ganancia (sube en silencios, cae de golpe al retomar la voz) — es la causa real
+    // del volumen que sube/baja/corta durante segundos (29-sep-2026). Nada aguas abajo (concat de
+    // chunks, remux de ffmpeg con -c:a copy, normalize a MP3) toca los niveles: solo la captura.
+    const constraints = {audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}};
     R.stream = window.__raizTestStream ? window.__raizTestStream() : await navigator.mediaDevices.getUserMedia(constraints);
     const track = R.stream.getAudioTracks()[0];
     track.onmute = () => interrupt("el sistema silenció el micrófono");
