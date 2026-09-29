@@ -264,11 +264,12 @@
 
   // ---------------- CAPA 2: subida al servidor ----------------
   const Uploader = {
-    busy: false, key: null,
-    kick() { if (!this.busy) this.run(); },
+    busy: false, again: false, key: null,
+    // si llega un aviso mientras sube, se repite la pasada al terminar (así no se pierde el "finalizar" del DETENER)
+    kick() { if (this.busy) { this.again = true; return; } this.run(); },
     async run() {
       if (!Uploader.key || !navigator.onLine) return;
-      this.busy = true;
+      this.busy = true; this.again = false;
       try {
         const recs = await allRecs();
         for (const r of recs) {
@@ -282,7 +283,7 @@
           if (r.final && !r.job) await Rec.sync(r.id);
         }
       } catch (e) { setTimeout(() => Uploader.kick(), 15000); }
-      finally { this.busy = false; }
+      finally { this.busy = false; if (this.again) setTimeout(() => Uploader.kick(), 0); }
     },
   };
   window.addEventListener("online", () => Uploader.kick());
