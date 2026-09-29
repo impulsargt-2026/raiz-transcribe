@@ -1,0 +1,8 @@
+# Dependencias del servidor en la nube (la PC usa además zeroconf y qrcode, ver README)
+fastapi==0.141.1
+uvicorn==0.54.0
+python-multipart==0.0.32
+httpx==0.28.1
+fpdf2==2.8.8
+imageio-ffmpeg
+huggingface_hub

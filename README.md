@@ -1,2 +1,2 @@
-# raiz-transcribe
-RAÍZ Transcribe (ImpulsARG-T) — código sin secretos ni datos
+# RAÍZ Transcribe (código)
+Servidor de transcripción de ImpulsARG-T. Sin secretos ni datos: se configuran como variables en el host.
