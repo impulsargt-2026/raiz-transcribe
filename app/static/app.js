@@ -65,14 +65,20 @@ Rec.on("error", msg => { $("#recMsg").innerHTML = `<span class="err">${esc(msg)}
 Rec.on("synced", () => { if (done) refreshDone(done.id); loadLocal(); });
 Rec.on("chunk", () => {});
 
+// Si RAÍZ está reproduciendo una grabación (revisión o recuperación) y el usuario arranca una
+// captura nueva, la reproducción seguía sonando en paralelo (29-sep-2026, Cliente Cero). Sin mezcla
+// de audio: simplemente se pausa cualquier reproducción antes de abrir el micrófono.
+function pauseAllAudio() { for (const el of [$("#recAudio"), $("#recoverAudio")]) { if (el && !el.paused) el.pause(); } }
+
 $("#recStart").onclick = async () => {
+  pauseAllAudio();
   try { await Rec.start(); $("#recTime").textContent = "00:00:00"; }
   catch (e) { $("#recHint").innerHTML = `<span class="err">No se pudo usar el micrófono: ${esc(e.message || e.name)}. En iPhone: Configuración → Safari → Micrófono → Permitir.</span>`; }
 };
 $("#recPause").onclick = () => Rec.pause();
-$("#recResume").onclick = async () => { try { await Rec.resume(); } catch (e) { $("#recMsg").innerHTML = `<span class="err">No se pudo reanudar: ${esc(e.message || e.name)}</span>`; } };
+$("#recResume").onclick = async () => { pauseAllAudio(); try { await Rec.resume(); } catch (e) { $("#recMsg").innerHTML = `<span class="err">No se pudo reanudar: ${esc(e.message || e.name)}</span>`; } };
 $("#recStop").onclick = async () => { const r = await Rec.stop(); if (r) openDone(r.id); loadLocal(); };
-$("#recNew").onclick = () => { done = null; showRecPanel("recIdle"); };
+$("#recNew").onclick = () => { pauseAllAudio(); done = null; showRecPanel("recIdle"); };
 
 let playList = [], playIdx = 0;
 function playSegments(audioEl, blobs) {
@@ -148,12 +154,24 @@ async function loadLocal() {
     (r.job ? '<span class="ok">respaldada en RAÍZ</span>' : '<span class="warn">solo en este dispositivo</span>') +
     `<br><button class="sec" data-a="open">Abrir</button>` + (r.job ? `<button class="sec" data-a="del">Borrar del dispositivo</button>` : "") + "</li>").join("")
     || "<li>Ninguna todavía</li>";
+  const borrables = rs.filter(r => r.job).length;
+  $("#localRecsAll").hidden = borrables === 0;
+  $("#localRecsAll").textContent = `ELIMINAR TODOS (${borrables} de este dispositivo)`;
   document.querySelectorAll("#localRecs li[data-id]").forEach(li => li.onclick = async e => {
     const a = e.target.dataset.a, id = li.dataset.id; if (!a) return;
     if (a === "open") { await openDone(id); scrollTo(0, 0); }
     if (a === "del" && confirm("¿Borrar esta grabación de ESTE dispositivo? Queda la copia respaldada en RAÍZ.")) { await Rec.remove(id); loadLocal(); }
   });
 }
+$("#localRecsAll").onclick = async () => {
+  const rs = (await Rec.list()).filter(r => r.final && r.job);  // solo las que YA están respaldadas en RAÍZ
+  if (!rs.length) return;
+  if (!confirm(`¿Eliminar las ${rs.length} grabaciones de ESTE dispositivo? Todas quedan respaldadas en RAÍZ — esto solo libera espacio local, no borra la transcripción.`)) return;
+  $("#localRecsAll").disabled = true;
+  for (const r of rs) await Rec.remove(r.id);
+  $("#localRecsAll").disabled = false;
+  loadLocal();
+};
 
 // ================= SUBIR ARCHIVOS (uno o varios) =================
 function setSteps(n) { document.querySelectorAll("#steps span").forEach((s, i) => s.className = i < n ? "done" : i === n ? "now" : ""); }
@@ -329,8 +347,15 @@ async function loadHist() {
   let r; try { r = await api("/api/jobs"); } catch (e) { setTimeout(loadHist, 5000); return; }
   if (!r.ok) return;
   const L = await r.json();
-  $("#hist").innerHTML = L.map(s => `<li><a href="?job=${encodeURIComponent(s.id)}&k=${K}" data-id="${esc(s.id)}">${esc(s.archivo_original)}</a> — ${esc(s.estado)} · ${s.creado ? s.creado.replace("T", " ").slice(0, 16) : ""}</li>`).join("") || "<li>Ninguna todavía</li>";
+  $("#hist").innerHTML = L.map(s => `<li><a href="?job=${encodeURIComponent(s.id)}&k=${K}" data-id="${esc(s.id)}">${esc(s.archivo_original)}</a> — ${esc(s.estado)} · ${s.creado ? s.creado.replace("T", " ").slice(0, 16) : ""} ` +
+    `<button class="sec" data-del="${esc(s.id)}">ELIMINAR</button></li>`).join("") || "<li>Ninguna todavía</li>";
   document.querySelectorAll("#hist a").forEach(a => a.onclick = e => { e.preventDefault(); poll(a.dataset.id); scrollTo(0, $("#job").offsetTop - 10); });
+  document.querySelectorAll("#hist button[data-del]").forEach(b => b.onclick = async () => {
+    if (!confirm("¿Eliminar esta transcripción? Se borra de RAÍZ (servidor + respaldo en la nube). Esto NO se puede deshacer.\n\nSi la grabaste con RAÍZ y todavía está en este dispositivo, esa copia no se toca acá.")) return;
+    b.disabled = true; b.textContent = "Eliminando…";
+    try { await api(`/api/jobs/${encodeURIComponent(b.dataset.del)}`, {method: "DELETE"}); loadHist(); }
+    catch (e) { b.disabled = false; b.textContent = "ELIMINAR"; alert("No se pudo eliminar: " + (e.message || e)); }
+  });
 }
 
 async function setupAccess() {

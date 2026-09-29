@@ -1,9 +1,14 @@
 """Trabajos: una carpeta por transcripción con original + crudo + estructurado + TXT/MD/PDF + métricas.
-Se procesa de a un audio por vez (cola simple). Nada se borra automáticamente."""
+Se procesa de a un audio por vez (cola simple). Nada se borra automáticamente, salvo el AUDIO
+ORIGINAL de un trabajo ya transcripto y con más de RETENTION_DAYS (ver _purge_old_originals): la
+transcripción (TXT/MD/PDF/JSON) se conserva siempre. Drive es el archivo permanente; RAÍZ es
+almacenamiento operativo (29-sep-2026, Cliente Cero)."""
 import json
+import logging
 import os
 import queue
 import re
+import shutil
 import threading
 import time
 import traceback
@@ -17,6 +22,7 @@ _q: "queue.Queue[str]" = queue.Queue()
 _lock = threading.Lock()
 # Precio de lista verificado 2026-09-28 (assemblyai.com/pricing): Universal-3.5 Pro 0,21 USD/h + diarización 0,02 USD/h
 USD_PER_HOUR = 0.23
+RETENTION_DAYS = int(os.environ.get("RAIZ_ORIGINAL_RETENTION_DAYS", "7"))
 
 
 def job_dir(jid: str) -> Path:
@@ -112,6 +118,49 @@ def rename(jid: str, new_name: str) -> dict:
         save_doc(jid, doc)
     storage.backup_async(jid)
     return read_state(jid)
+
+
+def delete_job(jid: str):
+    """ELIMINAR: borra el trabajo (carpeta local + respaldo en RAÍZ). No toca la copia en el
+    dispositivo (esa vive en el IndexedDB del navegador, capa aparte — ver recorder.js)."""
+    storage.delete(jid)
+    shutil.rmtree(job_dir(jid), ignore_errors=True)
+
+
+def _purge_old_originals():
+    """Retención de 7 días (RETENTION_DAYS) para el AUDIO ORIGINAL de trabajos ya transcriptos: se
+    borra el archivo pesado (local + respaldo) pero la transcripción (TXT/MD/PDF/JSON) queda intacta
+    para siempre. Se ejecuta "de paso" en cada list_jobs (que ya se llama en cada carga de la página) —
+    sin cron ni infraestructura nueva: alcanza con el tráfico normal de uso para mantenerlo al día."""
+    if RETENTION_DAYS <= 0:
+        return
+    cutoff = time.time() - RETENTION_DAYS * 86400
+    done = 0
+    for p in config.DATA_DIR.glob("*/estado.json"):
+        if done >= 5:  # como corre en el camino de cada carga de página, se limita por llamada
+            break
+        if p.parent.name.startswith("_"):
+            continue
+        try:
+            st = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if st.get("estado") != "listo" or st.get("original_purgado"):
+            continue
+        try:
+            if datetime.fromisoformat(st["creado"]).timestamp() > cutoff:
+                continue
+        except Exception:
+            continue
+        jid, orig = st["id"], (job_dir(st["id"]) / "original" / st["archivo_original"])
+        orig.unlink(missing_ok=True)
+        try:
+            (job_dir(jid) / "original").rmdir()  # solo si quedó vacía
+        except OSError:
+            pass
+        storage.delete_file(jid, f"original/{st['archivo_original']}")
+        write_state(jid, original_purgado=True)
+        done += 1
 
 
 def enqueue(jid: str):
@@ -218,6 +267,10 @@ def start_worker():
 
 
 def list_jobs(limit=30, ids: list[str] | None = None) -> list:
+    try:
+        _purge_old_originals()
+    except Exception as e:  # nunca rompe el listado por un fallo de purga
+        logging.getLogger("raiz").warning("purga de originales falló: %s", str(e)[:200])
     out = []
     paths = [job_dir(i) / "estado.json" for i in ids] if ids else \
         sorted((p for p in config.DATA_DIR.glob("*/estado.json") if not p.parent.name.startswith("_")), reverse=True)[:limit]

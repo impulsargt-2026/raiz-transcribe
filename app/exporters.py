@@ -17,13 +17,17 @@ def _dur(doc):
 
 
 def to_txt(doc: dict) -> str:
+    # Con timestamp y hablante por intervención (antes solo tenía el hablante): COPIAR y DESCARGAR TXT
+    # comparten esta misma función — sin esto, el TXT se sentía "crudo" frente a la vista en pantalla,
+    # que sí muestra hora por segmento (29-sep-2026, Cliente Cero).
     lines = []
     for kind, _, it in timeline(doc):
         if kind == "gap":
-            lines.append(f"[{ts(it['start'])}–{ts(it['end'])} sin habla transcripta: silencio o inaudible]")
+            lines.append(f"[{ts(it['start'])}–{ts(it['end'])}] (sin habla transcripta: silencio o inaudible)")
         else:
             who = speaker_name(doc, it["speaker"]) if doc["diarizacion"] else None
-            lines.append(f"{who}: {display_text(it)}" if who else display_text(it))
+            prefix = f"[{ts(it['start'])}] {who}:" if who else f"[{ts(it['start'])}]"
+            lines.append(f"{prefix} {display_text(it)}")
         lines.append("")
     return "\n".join(lines).strip() + "\n"
 
@@ -62,7 +66,7 @@ class _PDF(FPDF):
         self.set_y(-12)
         self.set_font("U", "", 8)
         self.set_text_color(130, 130, 130)
-        self.cell(0, 6, f"RAÍZ TRANSCRIBE · página {self.page_no()}/{{nb}}", align="C")
+        self.cell(0, 6, f"IMPULSARG-T TRANSCRIBE · página {self.page_no()}/{{nb}}", align="C")
 
 
 def _fonts():
@@ -87,7 +91,7 @@ def to_pdf(doc: dict, path: Path):
     pdf.set_title(f"Transcripción - {doc['archivo_original']}")
     pdf.add_page()
     pdf.set_font("U", "B", 16)
-    pdf.cell(0, 9, "RAÍZ TRANSCRIBE", new_x="LMARGIN", new_y="NEXT", align="L")
+    pdf.cell(0, 9, "IMPULSARG-T TRANSCRIBE", new_x="LMARGIN", new_y="NEXT", align="L")
     pdf.set_font("U", "", 10)
     pdf.set_text_color(60, 60, 60)
     for k, v in [("Archivo", doc["archivo_original"]), ("Fecha", _fecha(doc)),

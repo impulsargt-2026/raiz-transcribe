@@ -82,6 +82,28 @@ def restore_index():
                     dst.write_bytes(f.read_bytes())
 
 
+def delete(jid: str):
+    """Borra el respaldo completo de un trabajo del repo privado (usado por ELIMINAR)."""
+    if not enabled():
+        return
+    try:
+        _api().delete_folder(path_in_repo=f"jobs/{jid}", repo_id=REPO, repo_type="dataset",
+                             commit_message=f"borrar {jid}")
+    except Exception as e:  # la carpeta puede no existir todavía en el respaldo (nunca se subió) — no es error
+        log.warning("delete %s falló o no existía en el respaldo: %s", jid, str(e)[:200])
+
+
+def delete_file(jid: str, rel: str):
+    """Borra UN archivo del respaldo (usado por la retención de 7 días: solo el audio original)."""
+    if not enabled():
+        return
+    try:
+        _api().delete_file(path_in_repo=f"jobs/{jid}/{rel}", repo_id=REPO, repo_type="dataset",
+                           commit_message=f"purga {jid}/{rel}")
+    except Exception as e:
+        log.warning("delete_file %s/%s falló o no existía en el respaldo: %s", jid, rel, str(e)[:200])
+
+
 def fetch(jid: str, rel: str) -> bool:
     """Trae un archivo del respaldo si no está en el disco local (p. ej. el audio original)."""
     dst = config.DATA_DIR / jid / rel

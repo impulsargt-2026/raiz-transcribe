@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>RAÍZ Transcribe</title>
+<title>ImpulsARG-T Transcribe</title>
 <link rel="manifest" href="/manifest.webmanifest?k=__RAIZ_K__">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <link rel="icon" href="/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="RAÍZ Transcribe">
+<meta name="apple-mobile-web-app-title" content="ImpulsARG-T Transcribe">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#1f3d2b">
+<meta name="theme-color" content="#0b0f12">
 <style>
-  :root { --fg:#1b1b1b; --muted:#666; --bg:#fff; --card:#f4f6f4; --acc:#1f3d2b; --line:#d9ded9; --err:#b3261e; --ok:#2e7d4f; --warn:#8a5a00; --rec:#c62828; }
-  @media (prefers-color-scheme: dark) { :root { --fg:#eee; --muted:#aaa; --bg:#121412; --card:#1d211d; --acc:#7fc79b; --line:#333; --err:#ff8a80; --ok:#7fc79b; --warn:#ffcc80; --rec:#ff6b6b; } }
+  :root { --fg:#1b1b1b; --muted:#666; --bg:#fff; --card:#f4f6f4; --acc:#0f9a8c; --line:#d9dedf; --err:#b3261e; --ok:#2e7d4f; --warn:#8a5a00; --rec:#c62828; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#F5F8F8; --muted:#AEBCC2; --bg:#0b0f12; --card:#12191d; --acc:#21e6d2; --line:#233; --err:#ff8a80; --ok:#7fc79b; --warn:#ffcc80; --rec:#ff6b6b; } }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   body { margin:0; font:16px/1.45 system-ui,-apple-system,Segoe UI,Arial,sans-serif; color:var(--fg); background:var(--bg);
@@ -69,7 +69,7 @@
 <body>
 <main>
   <div id="net" hidden>No puedo contactar el servidor de RAÍZ. Lo grabado queda guardado en este dispositivo. Reintentando…</div>
-  <h1>RAÍZ TRANSCRIBE</h1>
+  <h1>IMPULSARG-T TRANSCRIBE</h1>
 
   <!-- recuperación de grabaciones sin finalizar -->
   <div id="recover" class="card banner" hidden>
@@ -137,12 +137,12 @@
   <section id="result" hidden>
     <h2>TRANSCRIPCIÓN</h2>
     <div>
-      <button id="copy">COPIAR</button>
+      <button id="share">📤 COMPARTIR PDF</button>
+      <button class="sec" id="shareAudio">📤 COMPARTIR AUDIO</button>
+      <button class="sec" id="copy">COPIAR</button>
       <a class="btn sec" id="dtxt">DESCARGAR TXT</a>
       <a class="btn sec" id="dmd">DESCARGAR MD</a>
       <a class="btn sec" id="dpdf">DESCARGAR PDF</a>
-      <button id="share">📤 COMPARTIR PDF</button>
-      <button class="sec" id="shareAudio">📤 COMPARTIR AUDIO</button>
     </div>
     <p class="muted" id="shareHint" hidden></p>
     <p class="note" id="diar"></p>
@@ -155,6 +155,7 @@
 
   <h2>Grabaciones en este dispositivo</h2>
   <ul id="localRecs" class="plain muted"></ul>
+  <button class="sec" id="localRecsAll" hidden>ELIMINAR TODOS</button>
 
   <h2>Transcripciones anteriores</h2>
   <ul id="hist" class="muted"></ul>
@@ -168,12 +169,12 @@
   </details>
 
   <details class="card" id="phonebox" hidden>
-    <summary>📲 Instalar ícono y «Compartir → RAÍZ Transcribe»</summary>
+    <summary>📲 Instalar ícono y «Compartir → ImpulsARG-T Transcribe»</summary>
     <p><b>Ícono:</b> en Safari tocá Compartir → <b>Agregar a pantalla de inicio</b> → Agregar.</p>
     <p><b>Atajo para Grabaciones</b> (opcional, una sola vez):</p>
     <button id="copyAtajo">COPIAR DIRECCIÓN DEL ATAJO</button>
     <ol class="short">
-      <li>App <b>Atajos</b> → <b>+</b> → nombre <b>RAÍZ Transcribe</b> → ⓘ Detalles → activar <b>Mostrar en hoja de compartir</b>.</li>
+      <li>App <b>Atajos</b> → <b>+</b> → nombre <b>ImpulsARG-T Transcribe</b> → ⓘ Detalles → activar <b>Mostrar en hoja de compartir</b>.</li>
       <li>Buscar acción «<b>contenido de URL</b>» → tocar «URL» → <b>Pegar</b>.</li>
       <li>Tocar ▸ → Método <b>POST</b> → Cuerpo <b>Formulario</b> → Agregar campo <b>Archivo</b> → clave <code>file</code> → valor: <b>Entrada del atajo</b>.</li>
       <li>Buscar acción «<b>Abrir URL</b>» → Listo.</li>

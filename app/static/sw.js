@@ -18,7 +18,7 @@ self.addEventListener("fetch", e => {
         const copy = r.clone(); caches.open(CACHE).then(c => c.put("/", copy));
       }
       return r;
-    }).catch(() => caches.match("/").then(r => r || new Response("RAÍZ Transcribe: sin conexión y sin copia local todavía. Abrí la app una vez con conexión.", {headers: {"content-type": "text/plain; charset=utf-8"}}))));
+    }).catch(() => caches.match("/").then(r => r || new Response("ImpulsARG-T Transcribe: sin conexión y sin copia local todavía. Abrí la app una vez con conexión.", {headers: {"content-type": "text/plain; charset=utf-8"}}))));
     return;
   }
   if (SHELL.includes(u.pathname)) {      // recursos: red, y si falla, copia

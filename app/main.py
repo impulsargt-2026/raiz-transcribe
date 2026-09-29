@@ -1,4 +1,4 @@
-"""RAÍZ TRANSCRIBE — servidor local (FastAPI). Interfaz en /, API en /api/*."""
+"""IMPULSARG-T TRANSCRIBE (nombre interno del código: RAÍZ) — servidor local (FastAPI). Interfaz en /, API en /api/*."""
 import io
 import json
 import socket
@@ -27,7 +27,7 @@ if not log.handlers:
     log.addHandler(_h)
     log.setLevel(logging.INFO)
 
-app = FastAPI(title="RAÍZ TRANSCRIBE", docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title="IMPULSARG-T TRANSCRIBE", docs_url=None, redoc_url=None, openapi_url=None)
 STATIC = Path(__file__).parent / "static"
 LOCAL = {"127.0.0.1", "::1", "localhost"}
 PUBLIC = {"/manifest.webmanifest", "/icon.svg", "/icon-180.png", "/icon-192.png", "/icon-512.png", "/favicon.ico",
@@ -55,7 +55,7 @@ async def auth(request: Request, call_next):
     """Desde la misma PC no pide clave. Desde el celular: ?k=CLAVE (queda en cookie, en el
     almacenamiento local de la página y en la URL de inicio del ícono instalado)."""
     if not authorized(request) and request.url.path not in PUBLIC:
-        return HTMLResponse("<meta name=viewport content='width=device-width'><h2>RAÍZ TRANSCRIBE</h2>"
+        return HTMLResponse("<meta name=viewport content='width=device-width'><h2>IMPULSARG-T TRANSCRIBE</h2>"
                             "<p>Falta la clave de acceso. Escaneá el QR que muestra la PC "
                             "(recuadro «Instalar en iPhone»).</p>", status_code=401)
     resp = await call_next(request)
@@ -165,6 +165,14 @@ async def rec_finalize(rid: str, request: Request):
 async def rename_job(jid: str, request: Request):
     b = await request.json()
     return await run_in_threadpool(jobs.rename, _exists(jid), str(b.get("name") or ""))
+
+
+@app.delete("/api/jobs/{jid}")
+async def delete_job(jid: str):
+    """ELIMINAR: borra la transcripción y su respaldo en RAÍZ. La copia en el dispositivo (si la
+    hay, para grabaciones propias) es independiente — se borra aparte, desde el propio dispositivo."""
+    await run_in_threadpool(jobs.delete_job, _exists(jid))
+    return {"ok": True}
 
 
 @app.get("/api/zip")
