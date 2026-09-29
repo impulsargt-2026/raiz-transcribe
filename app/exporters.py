@@ -71,7 +71,10 @@ def _fonts():
     if (win / "arial.ttf").exists():
         return win / "arial.ttf", win / "arialbd.ttf", win / "ariali.ttf"
     dv = Path("/usr/share/fonts/truetype/dejavu")
-    return dv / "DejaVuSans.ttf", dv / "DejaVuSans-Bold.ttf", dv / "DejaVuSans-Oblique.ttf"
+    reg = dv / "DejaVuSans.ttf"
+    # si falta una variante (p. ej. Oblique no viene en fonts-dejavu-core) se usa la regular: el PDF nunca falla por estilo
+    pick = lambda f: f if f.exists() else reg
+    return reg, pick(dv / "DejaVuSans-Bold.ttf"), pick(dv / "DejaVuSans-Oblique.ttf")
 
 
 def to_pdf(doc: dict, path: Path):

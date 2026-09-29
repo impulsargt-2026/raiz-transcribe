@@ -196,7 +196,10 @@ def _worker():
         except Exception as e:  # el mensaje nunca contiene la API key (ver providers)
             (job_dir(jid) / "error.log").write_text(traceback.format_exc(), encoding="utf-8")
             # el audio NUNCA se borra: el trabajo queda en error, reintentable
-            write_state(jid, estado="error", etapa="", error=str(e)[:500], transcript_id=None)
+            # si AssemblyAI ya transcribió y falló algo posterior (p. ej. el PDF), se conserva el id: REINTENTAR solo
+            # vuelve a consultar el resultado (gratis) en vez de subir y cobrar de nuevo
+            keep = read_state(jid).get("transcript_id") if not str(e).startswith("AssemblyAI devolvió error") else None
+            write_state(jid, estado="error", etapa="", error=str(e)[:500], transcript_id=keep)
             storage.backup_async(jid, ["estado.json", "error.log"])
 
 

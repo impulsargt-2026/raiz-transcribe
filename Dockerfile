@@ -2,7 +2,7 @@
 FROM python:3.12-slim
 # DejaVu: fuente Unicode para el PDF (tildes, ñ, ¿¡). FFmpeg viene dentro de imageio-ffmpeg.
 # tzdata + TZ: fechas de trabajos/archivos en hora argentina (no UTC)
-RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core tzdata \
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core fonts-dejavu-extra tzdata \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /srv
 COPY requirements.txt .
