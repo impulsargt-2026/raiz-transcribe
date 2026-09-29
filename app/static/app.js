@@ -294,8 +294,11 @@ function render(st) {
   $("#text").innerHTML = d.items.map(i => i.tipo === "gap"
     ? `<p class="gap">[${i.ts}] sin habla transcripta (silencio o inaudible)</p>`
     : `<div class="seg"><b><span class="ts">[${i.ts}]</span> ${esc(i.hablante || "")}</b>${esc(i.texto)}</div>`).join("");
+  // En iOS este enlace NO descarga de verdad (Safari abre el visor inline, sin acción clara de
+  // guardar) — el nombre "DESCARGAR" era engañoso ahí. En PC/Android sí baja el archivo real.
   for (const k of ["txt", "md", "pdf"]) { const a = $("#d" + k); a.href = fileUrl(st.id, k);
-    if (IOS) { a.target = "_blank"; a.removeAttribute("download"); } else a.setAttribute("download", ""); }
+    if (IOS) { a.target = "_blank"; a.removeAttribute("download"); a.textContent = `ABRIR ${k.toUpperCase()}`; }
+    else { a.setAttribute("download", ""); a.textContent = `DESCARGAR ${k.toUpperCase()}`; } }
   $("#spkbox").hidden = !d.speakers.length;
   $("#spks").innerHTML = d.speakers.map(s =>
     `<div class="spk"><span>${esc(s.label)} =</span><input data-id="${esc(s.id)}" value="${esc(s.nombre || "")}" placeholder="nombre (opcional)"></div>`).join("");
@@ -356,7 +359,17 @@ async function loadHist() {
     try { await api(`/api/jobs/${encodeURIComponent(b.dataset.del)}`, {method: "DELETE"}); loadHist(); }
     catch (e) { b.disabled = false; b.textContent = "ELIMINAR"; alert("No se pudo eliminar: " + (e.message || e)); }
   });
+  $("#histAll").hidden = L.length === 0;
+  $("#histAll").textContent = `ELIMINAR TODOS LOS RESPALDOS (${L.length})`;
 }
+$("#histAll").onclick = async () => {
+  const n = (await (await api("/api/jobs")).json()).length;
+  if (!n) return;
+  if (!confirm(`¿Eliminar las ${n} transcripciones de RAÍZ? Se borra TODO: audio original y TXT/MD/PDF/JSON, del servidor y del respaldo en la nube. Esto NO se puede deshacer.\n\nLas grabaciones que sigan en ESTE dispositivo no se tocan — vas a poder volver a transcribirlas.`)) return;
+  $("#histAll").disabled = true; $("#histAll").textContent = "Eliminando…";
+  try { await api("/api/jobs", {method: "DELETE"}); }
+  finally { $("#histAll").disabled = false; loadHist(); }
+};
 
 async function setupAccess() {
   if (IS_LOCAL) {

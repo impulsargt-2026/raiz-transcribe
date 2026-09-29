@@ -175,6 +175,14 @@ async def delete_job(jid: str):
     return {"ok": True}
 
 
+@app.delete("/api/jobs")
+async def delete_all_jobs():
+    """ELIMINAR TODOS LOS RESPALDOS: borra TODAS las transcripciones (servidor + respaldo en la
+    nube). No toca las grabaciones que sigan en el dispositivo."""
+    n = await run_in_threadpool(jobs.delete_all_jobs)
+    return {"ok": True, "borrados": n}
+
+
 @app.get("/api/zip")
 def zip_results(ids: str):
     """Descarga todo (TXT/MD/PDF de cada trabajo listo) en un ZIP, cada uno en su carpeta."""

@@ -121,10 +121,23 @@ def rename(jid: str, new_name: str) -> dict:
 
 
 def delete_job(jid: str):
-    """ELIMINAR: borra el trabajo (carpeta local + respaldo en RAÍZ). No toca la copia en el
-    dispositivo (esa vive en el IndexedDB del navegador, capa aparte — ver recorder.js)."""
+    """ELIMINAR: borra el trabajo ENTERO (audio original + transcripción TXT/MD/PDF/JSON), carpeta
+    local + respaldo en RAÍZ. No toca la copia en el dispositivo (esa vive en el IndexedDB del
+    navegador, capa aparte — ver recorder.js)."""
     storage.delete(jid)
     shutil.rmtree(job_dir(jid), ignore_errors=True)
+
+
+def delete_all_jobs() -> int:
+    """ELIMINAR TODOS LOS RESPALDOS: borra TODOS los trabajos (igual que delete_job, uno por uno).
+    Devuelve cuántos se borraron. No toca nada del dispositivo."""
+    n = 0
+    for p in list(config.DATA_DIR.glob("*/estado.json")):
+        if p.parent.name.startswith("_"):
+            continue
+        delete_job(p.parent.name)
+        n += 1
+    return n
 
 
 def _purge_old_originals():
@@ -227,7 +240,7 @@ def _process(jid: str):
 def save_doc(jid: str, doc: dict):
     d = job_dir(jid)
     (d / "transcripcion.json").write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
-    stem = f"{Path(doc['archivo_original']).stem} - transcripcion"
+    stem = f"{Path(doc['archivo_original']).stem} - Transcripción"
     files = exporters.write_all(doc, d, stem)
     files["json"] = "transcripcion.json"
     write_state(jid, archivos=files)
